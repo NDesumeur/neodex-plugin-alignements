@@ -1,0 +1,22 @@
+{
+  "id": "neodex.alignements",
+  "name": "Alignements",
+  "version": "1.0.0",
+  "author": "NDesumeur",
+  "description": "Déplace une bille par un chemin libre pour aligner cinq billes de la même couleur. Sinon, trois nouvelles billes tombent sur le plateau.",
+  "icon": "icon.png",
+  "entry": "index.js",
+  "view": "alignements",
+  "neobase": ">=4.0.0",
+  "type": "app",
+  "category": "Jeux",
+  "syncMode": "progression",
+  "syncInfo": "Meilleur score, lignes faites.",
+  "mobile": false,
+  "system": false,
+  "dependencies": {},
+  "sdk": "2.1.0",
+  "permissions": [
+    "storage"
+  ]
+}
