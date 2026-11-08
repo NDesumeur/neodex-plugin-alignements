@@ -1,9 +1,9 @@
 {
   "pluginId": "neodex.alignements",
   "repo": "NDesumeur/neodex-plugin-alignements",
-  "version": "1.0.0",
-  "sha256": "46c3cf683fbee2eedacc2e1582b8c75c71184d18aa50c12d9d8c677cb277d6cc",
-  "approvedAt": "2026-11-07T17:30:59.719Z",
+  "version": "1.0.1",
+  "sha256": "0ad9d8d00571d32bcce5ede6019fb6d3455bcd1445267ad5f62f24f2d2a3afe6",
+  "approvedAt": "2026-11-08T12:10:45.738Z",
   "neobase": ">=4.0.0",
-  "signature": "KUtf48RB2jBQSTcrrSt4m+cQKFflzP1Wju8KS8QAkg0MzJhhmqjHtEYlvhTWyzgdPeMFgE0MV1PowczWaWe0Bg=="
+  "signature": "uLufQMa0qsyB91JPOXL3Q4cUoqQvF4Dqd4IcTQ/nv1Ixo8wMpcsIs8IirQjBKKE6WHGTOPAXhRTmZVpOKEV4CA=="
 }
