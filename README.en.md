@@ -10,6 +10,8 @@ A puzzle game on a 9 × 9 board: move the balls to form lines of five balls of t
 - The ball only moves if a **free path** leads to that square: it travels square by square, up, down, left or right (never diagonally), and cannot pass through other balls.
 - The **next three colours** are shown above the board: plan where they might get in your way.
 - **Escape** deselects the ball. When the board is full, one click starts a new game; the **New game** button restarts at any time.
+- **Keyboard or gamepad**: the arrows (or the d-pad, or the stick) move a cursor, **Enter** (A button) picks up the ball then drops it, **Escape** (B button) lets go.
+- **Full screen**: the button at the top right of the board; Escape to leave it.
 
 ## Rules
 
@@ -22,6 +24,8 @@ A puzzle game on a 9 × 9 board: move the balls to form lines of five balls of t
 ## Scoring
 
 A line is worth 2 points per ball, plus 4 points for every ball beyond the fifth: 10 points for five balls, 16 for six, 22 for seven. Long lines and crossings (two lines in one move) are therefore worth much more than lines of five made one at a time.
+
+**Combo**: moves that make a line in a row multiply the points, ×2 for the second line in a row, ×3 for the third, and so on. A move without a line resets the combo. Each line bursts and shows the points won.
 
 ## Statistics
 

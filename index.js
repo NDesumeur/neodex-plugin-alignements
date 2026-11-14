@@ -2,12 +2,12 @@
 // Jeu NeoDex en pixel art dessiné à la main (police bitmap, cadres et boutons en pixels). Il tourne dans le bac à sable de NeoDex.
 const HTML = `<div class="appWrap wide">
   <div class="agHead"><span class="label">Alignements</span><span class="hint">Clic sur une bille, puis sur une case libre</span></div>
-  <div class="gMain"><div class="gameBox"><canvas id="gc" width="204" height="222"></canvas></div>
+  <div class="gMain"><div class="gameBox"><canvas id="gc" width="204" height="222"></canvas><button class="btn gFs" id="gFs">PLEIN ÉCRAN</button></div>
     <div class="gSide">
       <div class="sysCard"><b>RECORDS</b><div class="gStats" id="gStats"></div></div>
       <div class="row"><button class="btn main" id="gNew">NOUVELLE PARTIE</button></div>
       
-      <div class="hint">Une bille ne passe que par des cases libres (pas en diagonale). Les trois prochaines couleurs sont montrées en haut.</div><div class="hint">Les lignes comptent dans les quatre directions, diagonales comprises ; plus elles sont longues, plus elles rapportent.</div>
+      <div class="hint">Une bille ne passe que par des cases libres (pas en diagonale). Les trois prochaines couleurs sont montrées en haut.</div><div class="hint">Les lignes comptent dans les quatre directions, diagonales comprises ; plus elles sont longues, plus elles rapportent. Des lignes à la suite font un combo : ×2, ×3…</div><div class="hint">Au clavier ou à la manette : les flèches déplacent le curseur, Entrée (A) prend la bille puis la pose, Échap (B) la lâche.</div>
     </div></div>
 </div>`;
 const CSS = `.gMain{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
@@ -17,7 +17,11 @@ const CSS = `.gMain{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
 .gSide .sysCard{display:flex;flex-direction:column}
 .gStats{display:grid;grid-template-columns:1fr auto;gap:4px 14px}
 .gStats b{text-align:right}
-.gameBox canvas{max-width:480px;aspect-ratio:204/222}`;
+.gameBox canvas{max-width:480px;aspect-ratio:204/222}
+.gFs{position:absolute;top:14px;right:14px;opacity:.85}
+.gameBox:fullscreen{padding:0;background:#05010b}
+.gameBox:fullscreen .gFs{display:none}
+.gameBox:fullscreen canvas{max-width:none;width:auto;height:100vh}`;
 /* ---------- l'habillage pixel art, dessiné à la main : police bitmap (accents compris), cadres, boutons, icônes ----------
    Tout est en pixels pleins, agrandis par 2 sans lissage : aucun dégradé, aucune ombre floue. */
 const PXK = (() => {
@@ -336,7 +340,7 @@ const AG_BALL = AG_COL.map(([m, l, d]) => spr(['....kkkk....', '..kkmmmmkk..', '
 const ags = gstore('alignements', {games: 0, lines: 0});
 let ag = null;
 function agNew() {
-  ag = Object.assign(ag || {tick: 0, raf: 0}, {mode: 'play', grid: Array.from({length: AG.N}, () => Array(AG.N).fill(-1)), sel: null, next: agPick(), score: 0, anim: null, pops: [], endAt: 0});
+  ag = Object.assign(ag || {tick: 0, raf: 0}, {mode: 'play', grid: Array.from({length: AG.N}, () => Array(AG.N).fill(-1)), sel: null, next: agPick(), score: 0, anim: null, pops: [], endAt: 0, cur: [4, 4], kb: false, combo: 0, fx: [], txt: [], shake: 0});
   agDrop(5); agInfo();
 }
 const agPick = () => [0, 1, 2].map(() => Math.floor(Math.random() * 7));
@@ -351,14 +355,23 @@ function agPath(sx, sy, tx, ty) {  // le plus court chemin par des cases libres 
     for (const [a, b] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) if (a >= 0 && b >= 0 && a < AG.N && b < AG.N && ag.grid[b][a] < 0 && !prev.has(a + ',' + b)) { prev.set(a + ',' + b, x + ',' + y); q.push([a, b]); } }
   return null;
 }
-function agLines(x, y) {  // retire les lignes de 5 (ou plus) passant par cette case ; -> nombre de billes retirées
+function agLines(x, y, mult = 1) {  // retire les lignes de 5 (ou plus) passant par cette case, points × mult (le combo) ; -> nombre de billes retirées
   const c = ag.grid[y][x]; if (c < 0) return 0; const gone = new Set();
   for (const [dx, dy] of [[1, 0], [0, 1], [1, 1], [1, -1]]) {
     const line = [[x, y]]; for (const s of [1, -1]) { let a = x + dx * s, b = y + dy * s; while (ag.grid[b]?.[a] === c) { line.push([a, b]); a += dx * s; b += dy * s; } }
     if (line.length >= 5) line.forEach(([a, b]) => gone.add(a + ',' + b));
   }
-  for (const k of gone) { const [a, b] = k.split(',').map(Number); ag.pops.push({x: a, y: b, t: 0, c: ag.grid[b][a]}); ag.grid[b][a] = -1; }
-  if (gone.size) { ag.score += gone.size * 2 + (gone.size - 5) * 4; ags.lines++; [660, 880, 1100].forEach((f, i) => setTimeout(() => beep(f, .08, 'triangle'), i * 60)); }
+  let cx = 0, cy = 0;
+  for (const k of gone) { const [a, b] = k.split(',').map(Number); cx += a / gone.size; cy += b / gone.size;
+    ag.pops.push({x: a, y: b, t: 0, c: ag.grid[b][a]});
+    for (let i = 0; i < 10; i++) { const an = Math.random() * 6.28, v = .6 + Math.random() * 1.8; ag.fx.push({x: AG.X0 + a * AG.C + 10, y: AG.Y0 + b * AG.C + 10, vx: Math.cos(an) * v, vy: Math.sin(an) * v - 1, t: 26 + Math.random() * 14, c: AG_COL[ag.grid[b][a]][i % 3]}); }
+    ag.grid[b][a] = -1; }
+  if (gone.size) {
+    const pts = (gone.size * 2 + (gone.size - 5) * 4) * mult; ag.score += pts; ags.lines++; ag.shake = 4 + mult * 2;
+    ag.txt.push({x: AG.X0 + cx * AG.C + 10, y: AG.Y0 + cy * AG.C + 10, t: 0, s: '+' + pts + (mult > 1 ? ' ×' + mult : ''), big: mult > 1});
+    [660, 880, 1100, 1320, 1540].slice(0, 2 + Math.min(mult, 3)).forEach((f, i) => setTimeout(() => beep(f * (1 + (mult - 1) * .12), .08, 'triangle'), i * 60));
+    if (gone.size > 5 || mult > 1) beep(90, .25, 'sawtooth', 40, .07);  // un grondement pour les grosses lignes
+  }
   return gone.size;
 }
 function agMove(tx, ty) {
@@ -367,9 +380,12 @@ function agMove(tx, ty) {
 }
 function agUpdate() {
   for (const p of ag.pops) p.t++; ag.pops = ag.pops.filter(p => p.t < 12);
+  for (const f of ag.fx) { f.x += f.vx; f.y += f.vy; f.vy += .09; f.t--; } ag.fx = ag.fx.filter(f => f.t > 0);
+  for (const t of ag.txt) t.t++; ag.txt = ag.txt.filter(t => t.t < 60); if (ag.shake > 0) ag.shake -= .5;
   const a = ag.anim; if (!a) return;
   if (++a.t >= 3) { a.t = 0; a.i++; beep(500 + a.i * 20, .015, 'square', 0, .03); }
-  if (a.i >= a.p.length - 1) { const [x, y] = a.p.at(-1); ag.grid[y][x] = a.c; ag.anim = null; if (!agLines(x, y)) { const n = ag.next; ag.next = agPick(); agDrop(3, n); } agInfo(); }
+  if (a.i >= a.p.length - 1) { const [x, y] = a.p.at(-1); ag.grid[y][x] = a.c; ag.anim = null;
+    if (agLines(x, y, ag.combo + 1)) ag.combo++; else { ag.combo = 0; const n = ag.next; ag.next = agPick(); agDrop(3, n); } agInfo(); }
 }
 const AG_BG = cnv(W, H, b => {  // un plateau de bois sombre, chaque case creusée
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) px(b, (y * 7 + Math.floor(x / 9) * 13) % 17 < 2 ? '#2a1a10' : '#1e120a', x, y);
@@ -377,6 +393,7 @@ const AG_BG = cnv(W, H, b => {  // un plateau de bois sombre, chaque case creus�
   for (let y = 0; y < AG.N; y++) for (let x = 0; x < AG.N; x++) { const X = AG.X0 + x * AG.C, Y = AG.Y0 + y * AG.C; px(b, '#4a3220', X, Y, AG.C - 1, AG.C - 1); px(b, '#2e1e12', X + 1, Y + 1, AG.C - 3, AG.C - 3); px(b, '#3a2818', X + 2, Y + AG.C - 4, AG.C - 4, 1); }
 });
 function agDraw() {
+  px(g, '#05010b', 0, 0, W, H); g.save(); if (ag.shake > 0) g.translate(Math.round((Math.random() - .5) * ag.shake), Math.round((Math.random() - .5) * ag.shake));
   g.drawImage(AG_BG, 0, 0);
   for (let y = 0; y < AG.N; y++) for (let x = 0; x < AG.N; x++) {
     const c = ag.grid[y][x]; if (c < 0) continue; const born = ag.pops.find(p => p.born && p.x === x && p.y === y), sel = ag.sel && ag.sel[0] === x && ag.sel[1] === y;
@@ -384,23 +401,64 @@ function agDraw() {
     if (born) { const s = Math.round(12 * born.t / 12); g.drawImage(AG_BALL[c], X + 6 - s / 2, Y + 6 - s / 2, s, s); } else g.drawImage(AG_BALL[c], X, Math.round(Y));
   }
   if (ag.anim) { const [x, y] = ag.anim.p[ag.anim.i]; g.drawImage(AG_BALL[ag.anim.c], AG.X0 + x * AG.C + 4, AG.Y0 + y * AG.C + 4); }
-  for (const p of ag.pops) if (!p.born) { const k = p.t / 12; for (let a = 0; a < 8; a++) px(g, AG_COL[p.c][1], AG.X0 + p.x * AG.C + 10 + Math.cos(a * .785) * k * 12, AG.Y0 + p.y * AG.C + 10 + Math.sin(a * .785) * k * 12, 2, 2); }
-  pxFont(g, String(ag.score), AG.X0, 18, '#ffffff', 8); pxFont(g, 'ensuite', W - 62, 18, '#c8a880', 6, 'right'); ag.next.forEach((c, i) => g.drawImage(AG_BALL[c], W - 58 + i * 15, 9));
+  for (const p of ag.pops) if (!p.born) { const k = p.t / 12, X = AG.X0 + p.x * AG.C, Y = AG.Y0 + p.y * AG.C;
+    if (p.t < 4) px(g, '#ffffff', X + 1, Y + 1, AG.C - 3, AG.C - 3);  // la case flashe en blanc
+    for (let a = 0; a < 8; a++) px(g, AG_COL[p.c][1], X + 10 + Math.cos(a * .785) * k * 12, Y + 10 + Math.sin(a * .785) * k * 12, 2, 2); }
+  for (const f of ag.fx) px(g, f.c, f.x, f.y, f.t > 14 ? 2 : 1, f.t > 14 ? 2 : 1);
+  if (ag.kb && ag.mode === 'play') { const [x, y] = ag.cur, X = AG.X0 + x * AG.C - 1, Y = AG.Y0 + y * AG.C - 1, c = ag.tick % 30 < 20 ? '#ffd84a' : '#ffa030', s = AG.C + 1;
+    for (const [a, b, w, h] of [[0, 0, 5, 2], [0, 0, 2, 5], [s - 5, 0, 5, 2], [s - 2, 0, 2, 5], [0, s - 2, 5, 2], [0, s - 5, 2, 5], [s - 5, s - 2, 5, 2], [s - 2, s - 5, 2, 5]]) px(g, c, X + a, Y + b, w, h); }
+  for (const t of ag.txt) { const k = t.t / 60; pxFont(g, t.s, t.x, t.y - 8 - k * 14, k > .7 ? '#c8a880' : t.big ? '#ffd84a' : '#ffffff', t.big ? 10 : 8, 'center'); }
+  g.restore();
+  pxFont(g, String(ag.score), AG.X0, 18, '#ffffff', 8);
+  if (ag.combo > 0) pxFont(g, 'combo ×' + (ag.combo + 1), AG.X0 + 34, 18, ag.tick % 20 < 12 ? '#ffd84a' : '#ffa030', 6); pxFont(g, 'ensuite', W - 62, 18, '#c8a880', 6, 'right'); ag.next.forEach((c, i) => g.drawImage(AG_BALL[c], W - 58 + i * 15, 9));
   if (ag.mode === 'over' && ag.tick - ag.endAt > 30) gameText(g, W, [['PLATEAU PLEIN', '#ff4a5a', 10], [ag.score + ' points', '#ffffff'], ['Clic pour rejouer', '#ffd84a']], 110);
 }
 cv.onpointerdown = e => {
   e.preventDefault(); if (!ag) return; if (ag.mode === 'over') { if (ag.tick - ag.endAt > 30) agNew(); return; } if (ag.anim) return;
   const [mx, my] = cpos(e), x = Math.floor((mx - AG.X0) / AG.C), y = Math.floor((my - AG.Y0) / AG.C); if (x < 0 || y < 0 || x >= AG.N || y >= AG.N) return;
-  if (ag.grid[y][x] >= 0) { ag.sel = [x, y]; beep(700, .03, 'square', 0, .04); } else if (ag.sel) agMove(x, y);
+  ag.kb = false; ag.cur = [x, y]; agAct(x, y);
 };
+function agAct(x, y) {  // prendre la bille de cette case, ou y poser celle qu'on tient
+  if (ag.grid[y][x] >= 0) { ag.sel = [x, y]; beep(700, .03, 'square', 0, .04); } else if (ag.sel) agMove(x, y);
+}
+// clavier et manette : un curseur sur le plateau
+document.addEventListener('keydown', e => {
+  if (!keyOk(e) || !ag) return; const k = e.key;
+  if (ag.mode === 'over') { if ((k === 'Enter' || k === ' ') && ag.tick - ag.endAt > 30) { e.preventDefault(); agNew(); } return; }
+  const mv = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1]}[k];
+  if (mv) { e.preventDefault(); if (ag.kb) ag.cur = ag.cur.map((v, i) => Math.max(0, Math.min(AG.N - 1, v + mv[i]))); ag.kb = true; return; }
+  if (k === 'Enter' || k === ' ') { e.preventDefault(); if (!ag.kb) { ag.kb = true; return; } if (!ag.anim) agAct(...ag.cur); return; }
+  if (k === 'Escape' && ag.sel) { e.preventDefault(); ag.sel = null; }
+});
+cv.onpointermove = () => { if (ag) ag.kb = false; };
+{  // la manette envoie les touches du clavier : croix et stick = flèches, A = Entrée, B = Échap
+  const KEY = {12: 'ArrowUp', 13: 'ArrowDown', 14: 'ArrowLeft', 15: 'ArrowRight', 0: 'Enter', 1: 'Escape'}, held = new Map();
+  const send = k => document.dispatchEvent(new KeyboardEvent('keydown', {key: k, bubbles: true}));
+  const loop = () => {
+    requestAnimationFrame(loop); if (!view.classList.contains('on') || !navigator.getGamepads) return;
+    const p = [...navigator.getGamepads()].find(Boolean); if (!p) return;
+    const now = performance.now(), down = new Set(), [ax = 0, ay = 0] = p.axes;
+    for (const [i, k] of Object.entries(KEY)) if (p.buttons[i]?.pressed) down.add(k);
+    if (ax < -.5) down.add('ArrowLeft'); if (ax > .5) down.add('ArrowRight'); if (ay < -.5) down.add('ArrowUp'); if (ay > .5) down.add('ArrowDown');
+    for (const k of down) { const t = held.get(k); if (t === undefined) { held.set(k, now + 260); send(k); } else if (/^Arrow/.test(k) && now > t) { held.set(k, now + 110); send(k); } }
+    for (const k of [...held.keys()]) if (!down.has(k)) held.delete(k);
+  };
+  requestAnimationFrame(loop);
+}
+$('gFs').onclick = () => { $('gFs').blur(); if (document.fullscreenElement) document.exitFullscreen(); else cv.parentElement.requestFullscreen?.().catch(() => {}); };
 function agInfo() { showStats([['Meilleur score', games.best.alignements || 0], ['Score', ag ? ag.score : 0], ['Lignes faites', ags.lines], ['Parties', ags.games]]); }
 $('gNew').onclick = () => { agNew(); $('gNew').blur(); };
 {  // vérification : une ligne de cinq disparaît, quatre restent ; le chemin contourne les billes
-  const keep = ag, kl = ags.lines; ag = {grid: Array.from({length: AG.N}, () => Array(AG.N).fill(-1)), pops: [], score: 0};
+  const keep = ag, kl = ags.lines; ag = {grid: Array.from({length: AG.N}, () => Array(AG.N).fill(-1)), pops: [], fx: [], txt: [], score: 0};
   for (let x = 0; x < 4; x++) ag.grid[2][x] = 3; const four = agLines(0, 2); ag.grid[2][4] = 3; const five = agLines(4, 2);
+  for (let x = 0; x < 5; x++) ag.grid[6][x] = 2; agLines(0, 6, 3);  // une ligne de cinq en combo ×3 : 30 points de plus
   for (let y = 0; y < AG.N - 1; y++) ag.grid[y][5] = 1; const p = agPath(4, 0, 6, 0);
-  console.assert(four === 0 && five === 5 && ag.grid[2][0] === -1 && p && p.length === 3 + 2 * (AG.N - 1), 'alignements', {four, five, p: p?.length}); ag = keep; ags.lines = kl;
+  cv.dataset.selfcheck = four === 0 && five === 5 && ag.score === 40 ? 'ok' : 'raté';
+  console.assert(four === 0 && five === 5 && ag.grid[2][0] === -1 && ag.score === 40 && ag.txt.at(-1).s === '+30 ×3' && p && p.length === 3 + 2 * (AG.N - 1), 'alignements', {four, five, score: ag.score, p: p?.length}); ag = keep; ags.lines = kl;
 }
+// pour le test de NeoDex : un plateau préparé (deux lignes de quatre et leurs billes en bas) et l'état de la partie
+cv.__setup = () => { agNew(); ag.grid.forEach(r => r.fill(-1)); for (let x = 0; x < 4; x++) { ag.grid[0][x] = 0; ag.grid[1][x] = 1; } ag.grid[8][0] = 0; ag.grid[8][8] = 1; ag.cur = [0, 8]; ag.kb = false; ag.next = [2, 3, 4]; };
+cv.__ag = () => ({score: ag.score, combo: ag.combo, sel: ag.sel, cur: ag.cur});
 ctx.onOpen(() => { if (!ag) agNew(); gameLoop(ag, 'alignements', agUpdate, agDraw); agInfo(); });
 
 }

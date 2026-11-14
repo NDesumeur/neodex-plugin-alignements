@@ -41,7 +41,6 @@
  "KWMMMMMMMMBK": "KWMMMMMMMMBK",
  "KWWWWWK": "KWWWWWK",
  "KWWWWWWWWWWK": "KWWWWWWWWWWK",
- "Les lignes comptent dans les quatre directions, diagonales comprises ; plus elles sont longues, plus elles rapportent.": "Lines count in all four directions, including diagonals; the longer they are, the more they yield.",
  "Lignes faites": "Lines made",
  "Meilleur score": "Best score",
  "Meilleur score, lignes faites.": "Best score, lines done.",
@@ -58,5 +57,16 @@
  "Uc": "Uc",
  "Ud": "Ud",
  "Ug": "Ug",
- "Une bille ne passe que par des cases libres (pas en diagonale). Les trois prochaines couleurs sont montrées en haut.": "A ball only passes through free squares (not diagonally). The next three colors are shown at the top."
+ "Une bille ne passe que par des cases libres (pas en diagonale). Les trois prochaines couleurs sont montrées en haut.": "A ball only passes through free squares (not diagonally). The next three colors are shown at the top.",
+ "PLEIN ÉCRAN": "FULL SCREEN",
+ "Les lignes comptent dans les quatre directions, diagonales comprises ; plus elles sont longues, plus elles rapportent. Des lignes à la suite font un combo : ×2, ×3…": "Lines count in all four directions, including diagonals; the longer they are, the more they yield. Lines in a row make a combo: ×2, ×3…",
+ "Au clavier ou à la manette : les flèches déplacent le curseur, Entrée (A) prend la bille puis la pose, Échap (B) la lâche.": "With keyboard or gamepad: arrows move the cursor, Enter (A) picks up the ball then drops it, Escape (B) lets go.",
+ "Enter": "Enter",
+ "raté": "failed",
+ "vérification interne :": "self-check:",
+ "la bille n’est pas prise au clavier": "the ball is not picked up with the keyboard",
+ "première ligne :": "first line:",
+ "curseur avant Entrée": "cursor before Enter",
+ "le plein écran ne prend pas tout l’écran": "full screen does not fill the screen",
+ "plein écran ok, deux lignes au clavier, la deuxième en combo ×2 :": "full screen ok, two lines with the keyboard, the second one in a ×2 combo:"
 }
