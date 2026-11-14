@@ -13,5 +13,10 @@ module.exports = async ({ pj, sleep }) => {
   await pj(`document.getElementById('gFs').click(), 0`); await sleep(1200);
   const fs = await pj(`(() => { const c = document.getElementById('gc'); return document.fullscreenElement === c.parentElement && Math.abs(c.getBoundingClientRect().height - innerHeight) < 3; })()`);
   await pj(`document.exitFullscreen().then(() => 0)`); await sleep(600); if (!fs) throw new Error('le plein écran ne prend pas tout l’écran');
+  { // la zone de jeu tient dans la fenêtre, quelle que soit sa taille
+    const L = await pj(`(() => { const c = [...document.querySelectorAll('.gameBox canvas')].filter(c => c.offsetWidth).sort((a, b) => b.offsetWidth - a.offsetWidth)[0], r = c.getBoundingClientRect(); let s = 0; for (let e = c.parentElement; e; e = e.parentElement) s += e.scrollTop; return { top: Math.round(r.top + s), bottom: Math.round(r.bottom + s), h: Math.round(r.height), w: Math.round(r.width), wh: innerHeight, ww: innerWidth, sw: document.documentElement.scrollWidth }; })()`);
+    if (process.env.NEO_FIT_LOG) console.log('FIT', JSON.stringify(L));
+    if (L.bottom > L.wh + 1 || L.sw > L.ww + 1) throw new Error('la zone de jeu dépasse la fenêtre : ' + JSON.stringify(L));
+  }
   return 'plein écran ok, deux lignes au clavier, la deuxième en combo ×2 : ' + s.score + ' points';
 };
