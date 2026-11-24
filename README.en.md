@@ -4,6 +4,10 @@ A puzzle game on a 9 × 9 board: move the balls to form lines of five balls of t
 
 *Version française : [README.md](README.md)*
 
+## Puzzle mode (new in 1.2.0)
+
+Ten hand-made puzzles, unlocked one by one: clear the whole board in a set number of moves. No new balls fall, and the order of moves matters (a locked-in ball, a column in the way, a cross of nine balls at once).
+
 ## How to play
 
 - **Click a ball** to select it, then **click an empty square** to send it there.

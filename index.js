@@ -5,7 +5,9 @@ const HTML = `<div class="appWrap wide">
   <div class="gMain"><div class="gameBox"><canvas id="gc" width="204" height="222"></canvas><button class="btn gFs" id="gFs">PLEIN ÉCRAN</button></div>
     <div class="gSide">
       <div class="sysCard"><b>RECORDS</b><div class="gStats" id="gStats"></div></div>
+      <label class="row">Mode <select class="gSel" id="agMode"></select></label>
       <div class="row"><button class="btn main" id="gNew">NOUVELLE PARTIE</button></div>
+      <div class="hint">Puzzle : vide tout le plateau en un nombre de coups donné. Aucune bille ne tombe ; l’ordre des coups compte.</div>
       
       <div class="hint">Une bille ne passe que par des cases libres (pas en diagonale). Les trois prochaines couleurs sont montrées en haut.</div><div class="hint">Les lignes comptent dans les quatre directions, diagonales comprises ; plus elles sont longues, plus elles rapportent. Des lignes à la suite font un combo : ×2, ×3…</div><div class="hint">Au clavier ou à la manette : les flèches déplacent le curseur, Entrée (A) prend la bille puis la pose, Échap (B) la lâche.</div>
     </div></div>
@@ -337,11 +339,33 @@ const showStats = rows => $('gStats').replaceChildren(...rows.flatMap(([a, b]) =
 const AG = {N: 9, C: 20, X0: 12, Y0: 30};
 const AG_COL = [['#ff4a5a', '#ffb0b8', '#a02030'], ['#ffd84a', '#fff4b0', '#a07a10'], ['#5fdf6a', '#c8ffc8', '#2a8a3a'], ['#3f8aff', '#b0d0ff', '#1a4aa0'], ['#b07aff', '#e4d0ff', '#6a3ab0'], ['#ff9a3d', '#ffe0b0', '#a05a10'], ['#3fe0ff', '#d0faff', '#1a8aa0']];
 const AG_BALL = AG_COL.map(([m, l, d]) => spr(['....kkkk....', '..kkmmmmkk..', '.kmllmmmmmk.', '.kmlwlmmmmk.', 'kmmllmmmmmdk', 'kmmmmmmmmmdk', 'kmmmmmmmmmdk', 'kmmmmmmmmddk', '.kmmmmmmddk.', '.kmmmmmdddk.', '..kkddddkk..', '....kkkk....'], {k: '#05010b', m, l, d, w: '#ffffff'}));
-const ags = gstore('alignements', {games: 0, lines: 0});
+const ags = gstore('alignements', {games: 0, lines: 0, puz: 0, mode: 'classique'});
+// les puzzles : [nom, solution [[départ x, y, arrivée x, y]…], groupes de billes [couleur, x, y, pas x, pas y, nombre]] ; autant de coups que la solution
+const AG_PUZ = [
+  ['Premier pas', [[8, 8, 4, 4]], [0, 0, 4, 1, 0, 4], [0, 8, 8]],
+  ['Deux lignes', [[8, 1, 4, 1], [0, 0, 5, 6]], [1, 0, 1, 1, 0, 4], [1, 8, 1], [2, 1, 6, 1, 0, 4], [2, 0, 0]],
+  ['Diagonale', [[8, 0, 5, 5]], [3, 1, 1, 1, 1, 4], [3, 8, 0]],
+  ['La colonne', [[0, 8, 4, 4], [8, 0, 4, 4]], [4, 4, 0, 0, 1, 4], [5, 4, 5, 0, 1, 4], [4, 0, 8], [5, 8, 0]],
+  ['Enfermée', [[8, 4, 5, 0], [8, 2, 0, 5], [0, 0, 4, 8]], [0, 0, 0], [1, 1, 0, 1, 0, 4], [2, 0, 1, 0, 1, 4], [0, 5, 8, 1, 0, 4], [1, 8, 4], [2, 8, 2]],
+  ['Chacun son tour', [[8, 5, 4, 5], [2, 7, 2, 2], [6, 8, 6, 4]], [3, 0, 2, 1, 0, 2], [3, 3, 2, 1, 0, 2], [3, 2, 7], [4, 0, 5, 1, 0, 4], [4, 8, 5], [6, 6, 0, 0, 1, 4], [6, 6, 8]],
+  ['La croix', [[0, 8, 4, 4]], [2, 2, 2, 1, 1, 2], [2, 5, 5, 1, 1, 2], [2, 6, 2, -1, 1, 2], [2, 3, 5, -1, 1, 2], [2, 0, 8]],
+  ['Le pont', [[4, 0, 4, 7]], [5, 0, 7, 1, 0, 4], [5, 5, 7, 1, 0, 4], [5, 4, 0]],
+  ['Coin bloqué', [[0, 0, 3, 8], [0, 2, 8, 3], [8, 8, 3, 3]], [3, 8, 8], [4, 4, 8, 1, 0, 4], [5, 8, 4, 0, 1, 4], [3, 4, 4, 1, 1, 4], [4, 0, 0], [5, 0, 2]],
+  ['Feu d’artifice', [[8, 0, 4, 4], [8, 8, 4, 8]], [6, 2, 2, 1, 1, 2], [6, 5, 5, 1, 1, 2], [6, 6, 2, -1, 1, 2], [6, 3, 5, -1, 1, 2], [6, 8, 0], [1, 0, 8, 1, 0, 4], [1, 8, 8]],
+];
+function agPuzGrid(i) { const gr = Array.from({length: AG.N}, () => Array(AG.N).fill(-1)); for (const [c, x, y, dx = 0, dy = 0, n = 1] of AG_PUZ[i].slice(2)) for (let k = 0; k < n; k++) gr[y + dy * k][x + dx * k] = c; return gr; }
+function agMenu() { const s = $('agMode'); s.replaceChildren(Object.assign(el('option', '', 'Classique'), {value: 'classique'}), ...AG_PUZ.map(([nm], i) => Object.assign(el('option', '', 'Puzzle ' + (i + 1) + ' · ' + nm + (i < ags.puz ? ' · ✓' : i > ags.puz ? ' 🔒' : '')), {value: 'p' + i, disabled: i > ags.puz}))); s.value = ags.mode; }
 let ag = null;
 function agNew() {
   ag = Object.assign(ag || {tick: 0, raf: 0}, {mode: 'play', grid: Array.from({length: AG.N}, () => Array(AG.N).fill(-1)), sel: null, next: agPick(), score: 0, anim: null, pops: [], endAt: 0, cur: [4, 4], kb: false, combo: 0, fx: [], txt: [], shake: 0});
-  agDrop(5); agInfo();
+  const p = /^p\d+$/.test(ags.mode) ? +ags.mode.slice(1) : -1; ag.puz = p >= 0 && p <= ags.puz && p < AG_PUZ.length ? p : -1;
+  if (ag.puz >= 0) { ag.grid = agPuzGrid(ag.puz); ag.moves = AG_PUZ[ag.puz][1].length; ag.won = false; } else agDrop(5);
+  agInfo();
+}
+function agPuzEnd() {  // après un coup de puzzle : plateau vide = résolu ; plus de coups = raté
+  ag.moves--; const left = ag.grid.flat().some(c => c >= 0);
+  if (!left) { ag.won = true; ag.mode = 'over'; ag.endAt = ag.tick; ags.puz = Math.max(ags.puz, Math.min(AG_PUZ.length - 1, ag.puz + 1)); if (ag.puz === AG_PUZ.length - 1) ags.puzAll = true; saveGames(); agMenu(); beep(523, .2, 'square', 1047); }
+  else if (ag.moves <= 0) { ag.mode = 'over'; ag.endAt = ag.tick; beep(140, .4, 'sawtooth', 70, .07); }
 }
 const agPick = () => [0, 1, 2].map(() => Math.floor(Math.random() * 7));
 const agFree = () => { const f = []; for (let y = 0; y < AG.N; y++) for (let x = 0; x < AG.N; x++) if (ag.grid[y][x] < 0) f.push([x, y]); return f; };
@@ -385,7 +409,8 @@ function agUpdate() {
   const a = ag.anim; if (!a) return;
   if (++a.t >= 3) { a.t = 0; a.i++; beep(500 + a.i * 20, .015, 'square', 0, .03); }
   if (a.i >= a.p.length - 1) { const [x, y] = a.p.at(-1); ag.grid[y][x] = a.c; ag.anim = null;
-    if (agLines(x, y, ag.combo + 1)) ag.combo++; else { ag.combo = 0; const n = ag.next; ag.next = agPick(); agDrop(3, n); } agInfo(); }
+    if (agLines(x, y, ag.combo + 1)) ag.combo++; else if (ag.puz >= 0) ag.combo = 0; else { ag.combo = 0; const n = ag.next; ag.next = agPick(); agDrop(3, n); }
+    if (ag.puz >= 0) agPuzEnd(); agInfo(); }
 }
 const AG_BG = cnv(W, H, b => {  // un plateau de bois sombre, chaque case creusée
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) px(b, (y * 7 + Math.floor(x / 9) * 13) % 17 < 2 ? '#2a1a10' : '#1e120a', x, y);
@@ -410,11 +435,13 @@ function agDraw() {
   for (const t of ag.txt) { const k = t.t / 60; pxFont(g, t.s, t.x, t.y - 8 - k * 14, k > .7 ? '#c8a880' : t.big ? '#ffd84a' : '#ffffff', t.big ? 10 : 8, 'center'); }
   g.restore();
   pxFont(g, String(ag.score), AG.X0, 18, '#ffffff', 8);
-  if (ag.combo > 0) pxFont(g, 'combo ×' + (ag.combo + 1), AG.X0 + 34, 18, ag.tick % 20 < 12 ? '#ffd84a' : '#ffa030', 6); pxFont(g, 'ensuite', W - 62, 18, '#c8a880', 6, 'right'); ag.next.forEach((c, i) => g.drawImage(AG_BALL[c], W - 58 + i * 15, 9));
-  if (ag.mode === 'over' && ag.tick - ag.endAt > 30) gameText(g, W, [['PLATEAU PLEIN', '#ff4a5a', 10], [ag.score + ' points', '#ffffff'], ['Clic pour rejouer', '#ffd84a']], 110);
+  if (ag.combo > 0 && ag.puz < 0) pxFont(g, 'combo ×' + (ag.combo + 1), AG.X0 + 34, 18, ag.tick % 20 < 12 ? '#ffd84a' : '#ffa030', 6); if (ag.puz >= 0) { pxFont(g, 'Puzzle ' + (ag.puz + 1), W / 2 + 10, 18, '#c8a880', 6, 'center'); pxFont(g, ag.moves + (ag.moves > 1 ? ' coups' : ' coup'), W - AG.X0, 18, ag.moves <= 1 ? '#ff9a3d' : '#ffffff', 6, 'right'); }
+  else { pxFont(g, 'ensuite', W - 62, 18, '#c8a880', 6, 'right'); ag.next.forEach((c, i) => g.drawImage(AG_BALL[c], W - 58 + i * 15, 9)); }
+  if (ag.puz >= 0 && ag.mode === 'over' && ag.tick - ag.endAt > 30) gameText(g, W, ag.won ? [['RÉSOLU', '#5fdf6a', 10], [ag.puz < AG_PUZ.length - 1 ? 'Clic : puzzle suivant' : 'Tous les puzzles résolus', '#ffd84a']] : [['PLUS DE COUPS', '#ff4a5a', 10], ['Clic pour réessayer', '#ffd84a']], 110);
+  else if (ag.mode === 'over' && ag.tick - ag.endAt > 30) gameText(g, W, [['PLATEAU PLEIN', '#ff4a5a', 10], [ag.score + ' points', '#ffffff'], ['Clic pour rejouer', '#ffd84a']], 110);
 }
 cv.onpointerdown = e => {
-  e.preventDefault(); if (!ag) return; if (ag.mode === 'over') { if (ag.tick - ag.endAt > 30) agNew(); return; } if (ag.anim) return;
+  e.preventDefault(); if (!ag) return; if (ag.mode === 'over') { if (ag.tick - ag.endAt > 30) agAgain(); return; } if (ag.anim) return;
   const [mx, my] = cpos(e), x = Math.floor((mx - AG.X0) / AG.C), y = Math.floor((my - AG.Y0) / AG.C); if (x < 0 || y < 0 || x >= AG.N || y >= AG.N) return;
   ag.kb = false; ag.cur = [x, y]; agAct(x, y);
 };
@@ -424,7 +451,7 @@ function agAct(x, y) {  // prendre la bille de cette case, ou y poser celle qu'o
 // clavier et manette : un curseur sur le plateau
 document.addEventListener('keydown', e => {
   if (!keyOk(e) || !ag) return; const k = e.key;
-  if (ag.mode === 'over') { if ((k === 'Enter' || k === ' ') && ag.tick - ag.endAt > 30) { e.preventDefault(); agNew(); } return; }
+  if (ag.mode === 'over') { if ((k === 'Enter' || k === ' ') && ag.tick - ag.endAt > 30) { e.preventDefault(); agAgain(); } return; }
   const mv = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1]}[k];
   if (mv) { e.preventDefault(); if (ag.kb) ag.cur = ag.cur.map((v, i) => Math.max(0, Math.min(AG.N - 1, v + mv[i]))); ag.kb = true; return; }
   if (k === 'Enter' || k === ' ') { e.preventDefault(); if (!ag.kb) { ag.kb = true; return; } if (!ag.anim) agAct(...ag.cur); return; }
@@ -446,7 +473,9 @@ cv.onpointermove = () => { if (ag) ag.kb = false; };
   requestAnimationFrame(loop);
 }
 $('gFs').onclick = () => { $('gFs').blur(); if (document.fullscreenElement) document.exitFullscreen(); else cv.parentElement.requestFullscreen?.().catch(() => {}); };
-function agInfo() { showStats([['Meilleur score', games.best.alignements || 0], ['Score', ag ? ag.score : 0], ['Lignes faites', ags.lines], ['Parties', ags.games]]); }
+function agInfo() { showStats([['Meilleur score', games.best.alignements || 0], ['Score', ag ? ag.score : 0], ['Lignes faites', ags.lines], ['Parties', ags.games], ['Puzzles', (ags.puzAll ? AG_PUZ.length : ags.puz) + ' / ' + AG_PUZ.length]]); }
+function agAgain() { if (ag.puz >= 0 && ag.won && ag.puz < AG_PUZ.length - 1) { ags.mode = 'p' + (ag.puz + 1); saveGames(); agMenu(); } agNew(); }
+agMenu(); $('agMode').onchange = () => { if ($('agMode').selectedOptions[0]?.disabled) { agMenu(); return; } ags.mode = $('agMode').value; saveGames(); agNew(); $('agMode').blur(); };
 $('gNew').onclick = () => { agNew(); $('gNew').blur(); };
 {  // vérification : une ligne de cinq disparaît, quatre restent ; le chemin contourne les billes
   const keep = ag, kl = ags.lines; ag = {grid: Array.from({length: AG.N}, () => Array(AG.N).fill(-1)), pops: [], fx: [], txt: [], score: 0};
@@ -456,9 +485,17 @@ $('gNew').onclick = () => { agNew(); $('gNew').blur(); };
   cv.dataset.selfcheck = four === 0 && five === 5 && ag.score === 40 ? 'ok' : 'raté';
   console.assert(four === 0 && five === 5 && ag.grid[2][0] === -1 && ag.score === 40 && ag.txt.at(-1).s === '+30 ×3' && p && p.length === 3 + 2 * (AG.N - 1), 'alignements', {four, five, score: ag.score, p: p?.length}); ag = keep; ags.lines = kl;
 }
+{
+  const keep = ag, kl = ags.lines, bad = [];
+  AG_PUZ.forEach(([nm, sol], i) => { ag = {grid: agPuzGrid(i), pops: [], fx: [], txt: [], score: 0};
+    for (const [sx, sy, tx, ty] of sol) { const c = ag.grid[sy][sx]; if (c < 0 || !agPath(sx, sy, tx, ty)) { bad.push(nm + ' chemin'); break; } ag.grid[sy][sx] = -1; ag.grid[ty][tx] = c; if (!agLines(tx, ty)) { bad.push(nm + ' ligne'); break; } }
+    if (ag.grid.flat().some(c => c >= 0)) bad.push(nm + ' reste'); });
+  ag = keep; ags.lines = kl; cv.dataset.puzcheck = bad.join(', ') || 'ok'; console.assert(!bad.length, 'alignements puzzles', bad);
+}
 // pour le test de NeoDex : un plateau préparé (deux lignes de quatre et leurs billes en bas) et l'état de la partie
 cv.__setup = () => { agNew(); ag.grid.forEach(r => r.fill(-1)); for (let x = 0; x < 4; x++) { ag.grid[0][x] = 0; ag.grid[1][x] = 1; } ag.grid[8][0] = 0; ag.grid[8][8] = 1; ag.cur = [0, 8]; ag.kb = false; ag.next = [2, 3, 4]; };
-cv.__ag = () => ({score: ag.score, combo: ag.combo, sel: ag.sel, cur: ag.cur});
+cv.__ag = () => ({score: ag.score, combo: ag.combo, sel: ag.sel, cur: ag.cur, puz: ag.puz, moves: ag.moves, mode: ag.mode, won: ag.won, balls: ag.grid.flat().filter(c => c >= 0).length});
+cv.__puz = i => AG_PUZ[i][1];
 ctx.onOpen(() => { if (!ag) agNew(); gameLoop(ag, 'alignements', agUpdate, agDraw); agInfo(); });
 
 }

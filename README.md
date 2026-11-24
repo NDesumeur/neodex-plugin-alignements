@@ -4,6 +4,10 @@ Un jeu de réflexion sur un plateau de 9 × 9 cases : déplace les billes pour f
 
 *English version: [README.en.md](README.en.md)*
 
+## Mode puzzle (nouveau en 1.2.0)
+
+Dix puzzles faits à la main, à débloquer un par un : il faut vider tout le plateau en un nombre de coups donné. Aucune bille ne tombe, et l’ordre des coups compte (une bille enfermée, une colonne qui barre le chemin, une croix de neuf billes d’un coup).
+
 ## Comment jouer
 
 - **Clique sur une bille** pour la sélectionner, puis **clique sur une case libre** pour l'y envoyer.
