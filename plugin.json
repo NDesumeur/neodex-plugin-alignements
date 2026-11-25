@@ -1,7 +1,7 @@
 {
   "id": "neodex.alignements",
   "name": "Alignements",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "author": "NDesumeur",
   "description": "Jeu de réflexion sur un plateau de 9 × 9 : clique sur une bille puis sur une case libre pour la déplacer par un chemin dégagé, et forme des lignes de cinq billes de la même couleur, droites ou en diagonale. Chaque coup sans ligne fait tomber trois nouvelles billes ; plus la ligne est longue, plus elle rapporte. La partie se termine quand le plateau est plein. Mode puzzle : dix plateaux à vider en un nombre de coups donné.",
   "icon": "icon.png",
@@ -22,6 +22,57 @@
   "sdk": "2.1.0",
   "permissions": [
     "storage"
+  ],
+  "succes": [
+    {
+      "id": "premier",
+      "nom": "Cinq de front",
+      "texte": "Faire une première ligne"
+    },
+    {
+      "id": "cent",
+      "nom": "Aligneur",
+      "texte": "Faire 100 lignes en tout"
+    },
+    {
+      "id": "mille",
+      "nom": "Maître des billes",
+      "texte": "Faire 1 000 lignes en tout"
+    },
+    {
+      "id": "s500",
+      "nom": "Bon plateau",
+      "texte": "Marquer 500 points en une partie"
+    },
+    {
+      "id": "s2000",
+      "nom": "Plateau d'or",
+      "texte": "Marquer 2 000 points en une partie"
+    },
+    {
+      "id": "puzzle",
+      "nom": "Premier puzzle",
+      "texte": "Réussir un puzzle"
+    },
+    {
+      "id": "puzzles",
+      "nom": "Tous les puzzles",
+      "texte": "Réussir les 10 puzzles"
+    }
+  ],
+  "records": [
+    {
+      "id": "score",
+      "nom": "Meilleur score",
+      "sens": "haut",
+      "format": "nombre"
+    },
+    {
+      "id": "lignes",
+      "nom": "Lignes faites",
+      "sens": "haut",
+      "format": "nombre"
+    }
   ],
   "gamepad": true
 }

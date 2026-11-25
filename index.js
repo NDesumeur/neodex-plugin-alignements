@@ -303,6 +303,9 @@ export default async function (ctx) {
   const saveGames = () => { clearTimeout(gamesTimer); gamesTimer = setTimeout(() => { gamesTimer = null; folder.write('games', games).catch(() => {}); }, 500); };
   const best = (k, v) => { const b = games.best[k]; if (b == null || v > b) { games.best[k] = v; saveGames(); return true; } return false; };
   const gstore = (k, init) => (games[k] ??= init);
+  // les trophées de NeoDex (3.4.8 et plus) : succès et records déclarés dans plugin.json ; sur un NeoDex plus ancien, rien ne se passe
+  const trophy = id => { ctx.games?.unlock(id).catch(() => {}); };
+  const trophyRecord = (id, v) => { if (v != null && Number.isFinite(+v)) ctx.games?.record(id, +v).catch(() => {}); };
 function gameLoop(st, appKey, update, draw) {
   cancelAnimationFrame(st.raf);
   const STEP = 1000 / 60; let acc = 0, last = performance.now();
@@ -473,7 +476,8 @@ cv.onpointermove = () => { if (ag) ag.kb = false; };
   requestAnimationFrame(loop);
 }
 $('gFs').onclick = () => { $('gFs').blur(); if (document.fullscreenElement) document.exitFullscreen(); else cv.parentElement.requestFullscreen?.().catch(() => {}); };
-function agInfo() { showStats([['Meilleur score', games.best.alignements || 0], ['Score', ag ? ag.score : 0], ['Lignes faites', ags.lines], ['Parties', ags.games], ['Puzzles', (ags.puzAll ? AG_PUZ.length : ags.puz) + ' / ' + AG_PUZ.length]]); }
+function agInfo() {
+  setTimeout(agTrophies); showStats([['Meilleur score', games.best.alignements || 0], ['Score', ag ? ag.score : 0], ['Lignes faites', ags.lines], ['Parties', ags.games], ['Puzzles', (ags.puzAll ? AG_PUZ.length : ags.puz) + ' / ' + AG_PUZ.length]]); }
 function agAgain() { if (ag.puz >= 0 && ag.won && ag.puz < AG_PUZ.length - 1) { ags.mode = 'p' + (ag.puz + 1); saveGames(); agMenu(); } agNew(); }
 agMenu(); $('agMode').onchange = () => { if ($('agMode').selectedOptions[0]?.disabled) { agMenu(); return; } ags.mode = $('agMode').value; saveGames(); agNew(); $('agMode').blur(); };
 $('gNew').onclick = () => { agNew(); $('gNew').blur(); };
@@ -496,6 +500,13 @@ $('gNew').onclick = () => { agNew(); $('gNew').blur(); };
 cv.__setup = () => { agNew(); ag.grid.forEach(r => r.fill(-1)); for (let x = 0; x < 4; x++) { ag.grid[0][x] = 0; ag.grid[1][x] = 1; } ag.grid[8][0] = 0; ag.grid[8][8] = 1; ag.cur = [0, 8]; ag.kb = false; ag.next = [2, 3, 4]; };
 cv.__ag = () => ({score: ag.score, combo: ag.combo, sel: ag.sel, cur: ag.cur, puz: ag.puz, moves: ag.moves, mode: ag.mode, won: ag.won, balls: ag.grid.flat().filter(c => c >= 0).length});
 cv.__puz = i => AG_PUZ[i][1];
+// les trophées, tirés des statistiques et des records gardés (aussi à l'ouverture : ce qui a été fait avant compte)
+function agTrophies() {
+  const b = games.best.alignements, sig = [b, ags.lines, ags.puz, ags.puzAll].join(); if (sig === agTrophies.sig) return; agTrophies.sig = sig;
+  trophyRecord('score', b || null); trophyRecord('lignes', ags.lines || null);
+  if (ags.lines >= 1) trophy('premier'); if (ags.lines >= 100) trophy('cent'); if (ags.lines >= 1000) trophy('mille');
+  if (b >= 500) trophy('s500'); if (b >= 2000) trophy('s2000'); if (ags.puz >= 1 || ags.puzAll) trophy('puzzle'); if (ags.puzAll) trophy('puzzles');
+}
 ctx.onOpen(() => { if (!ag) agNew(); gameLoop(ag, 'alignements', agUpdate, agDraw); agInfo(); });
 
 }

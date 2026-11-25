@@ -92,5 +92,19 @@
  "Puzzles": "Puzzles",
  "coup": "move",
  "coups": "moves",
- "Jeu de réflexion sur un plateau de 9 × 9 : clique sur une bille puis sur une case libre pour la déplacer par un chemin dégagé, et forme des lignes de cinq billes de la même couleur, droites ou en diagonale. Chaque coup sans ligne fait tomber trois nouvelles billes ; plus la ligne est longue, plus elle rapporte. La partie se termine quand le plateau est plein. Mode puzzle : dix plateaux à vider en un nombre de coups donné.": "A puzzle game on a 9 × 9 board: click a ball, then an empty square, to move it along a clear path, and make lines of five balls of the same colour, straight or diagonal. Every move without a line drops three new balls; the longer the line, the more it scores. The game ends when the board is full. Puzzle mode: ten boards to clear in a set number of moves."
+ "Jeu de réflexion sur un plateau de 9 × 9 : clique sur une bille puis sur une case libre pour la déplacer par un chemin dégagé, et forme des lignes de cinq billes de la même couleur, droites ou en diagonale. Chaque coup sans ligne fait tomber trois nouvelles billes ; plus la ligne est longue, plus elle rapporte. La partie se termine quand le plateau est plein. Mode puzzle : dix plateaux à vider en un nombre de coups donné.": "A puzzle game on a 9 × 9 board: click a ball, then an empty square, to move it along a clear path, and make lines of five balls of the same colour, straight or diagonal. Every move without a line drops three new balls; the longer the line, the more it scores. The game ends when the board is full. Puzzle mode: ten boards to clear in a set number of moves.",
+ "Cinq de front": "Five abreast",
+ "Faire une première ligne": "Make your first line",
+ "Aligneur": "Liner-up",
+ "Faire 100 lignes en tout": "Make 100 lines in total",
+ "Maître des billes": "Marble master",
+ "Faire 1 000 lignes en tout": "Make 1,000 lines in total",
+ "Bon plateau": "Good board",
+ "Marquer 500 points en une partie": "Score 500 points in one game",
+ "Plateau d'or": "Golden board",
+ "Marquer 2 000 points en une partie": "Score 2,000 points in one game",
+ "Premier puzzle": "First puzzle",
+ "Réussir un puzzle": "Solve a puzzle",
+ "Tous les puzzles": "Every puzzle",
+ "Réussir les 10 puzzles": "Solve all 10 puzzles"
 }
